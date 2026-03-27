@@ -1,22 +1,117 @@
-<h1>Feed</h1>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Online Images</title>
 
-<form action="/upload" method="POST" enctype="multipart/form-data">
-    <input type="file" name="file">
-    <button>Upload</button>
-</form>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: #0f0f12;
+      color: white;
+    }
 
-<a href="/logout">Logout</a>
+    .topbar {
+      padding: 15px;
+      background: #18181c;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
 
-<hr>
+    .container {
+      max-width: 700px;
+      margin: auto;
+      padding: 20px;
+    }
 
-{% for img in images %}
-  <div style="margin-bottom:30px;">
-    <img src="/uploads/{{ img.filename }}" width="300" style="border-radius:10px;">
+    .upload-box {
+      background: #18181c;
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
 
-    <p>like{{ img.likes }}</p>
+    input, button {
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+    }
 
-    <a href="/like/{{ img.id }}">
-      <button>Like</button>
-    </a>
+    button {
+      background: #ff2d55;
+      color: white;
+      cursor: pointer;
+    }
+
+    .card {
+      background: #18181c;
+      border-radius: 16px;
+      margin-bottom: 20px;
+      overflow: hidden;
+      transition: 0.2s;
+    }
+
+    .card:hover {
+      transform: scale(1.01);
+    }
+
+    .card img {
+      width: 100%;
+      display: block;
+    }
+
+    .card-body {
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .like-btn {
+      background: #2a2a2f;
+      padding: 8px 12px;
+      border-radius: 10px;
+      text-decoration: none;
+      color: white;
+    }
+
+    .like-btn:hover {
+      background: #ff2d55;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="topbar">
+  <h2>Social</h2>
+  <a href="/logout" style="color:white;">Logout</a>
+</div>
+
+<div class="container">
+
+  <div class="upload-box">
+    <form action="/upload" method="POST" enctype="multipart/form-data">
+      <input type="file" name="file">
+      <button>Upload 🚀</button>
+    </form>
   </div>
-{% endfor %}
+
+  {% for img in images %}
+  <div class="card">
+
+    <img src="/uploads/{{ img.filename }}">
+
+    <div class="card-body">
+      <span>Like {{ img.likes }}</span>
+      <a class="like-btn" href="/like/{{ img.id }}">Like</a>
+    </div>
+
+  </div>
+  {% endfor %}
+
+</div>
+
+</body>
+</html>
