@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, redirect, url_for
-from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import os, uuid
@@ -7,8 +6,9 @@ import os, uuid
 from models import db, User, Image
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "secret123"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///users.db"
+
+app.config["SECRET_KEY"] = "supersecret"
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
 app.config["UPLOAD_FOLDER"] = "uploads"
 
 db.init_app(app)
@@ -23,17 +23,18 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
+# ---------------- AUTH ----------------
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        username = request.form["username"]
-        password = generate_password_hash(request.form["password"])
-
-        user = User(username=username, password=password)
+        user = User(
+            username=request.form["username"],
+            password=generate_password_hash(request.form["password"])
+        )
         db.session.add(user)
         db.session.commit()
-
-        return redirect(url_for("login"))
+        return redirect("/login")
 
     return render_template("register.html")
 
@@ -45,7 +46,7 @@ def login():
 
         if user and check_password_hash(user.password, request.form["password"]):
             login_user(user)
-            return redirect(url_for("index"))
+            return redirect("/")
 
     return render_template("login.html")
 
@@ -54,28 +55,47 @@ def login():
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for("login"))
+    return redirect("/login")
 
 
-@app.route("/", methods=["GET", "POST"])
+# ---------------- MAIN FEED ----------------
+
+@app.route("/", methods=["GET"])
 @login_required
 def index():
-    if request.method == "POST":
-        file = request.files["file"]
-
-        if file:
-            ext = file.filename.rsplit(".", 1)[1]
-            filename = f"{uuid.uuid4().hex}.{ext}"
-            path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-            file.save(path)
-
-            img = Image(filename=filename, user_id=current_user.id)
-            db.session.add(img)
-            db.session.commit()
-
-    images = Image.query.filter_by(user_id=current_user.id).all()
+    images = Image.query.order_by(Image.id.desc()).all()
     return render_template("index.html", images=images)
 
+
+@app.route("/upload", methods=["POST"])
+@login_required
+def upload():
+    file = request.files.get("file")
+
+    if file:
+        ext = file.filename.rsplit(".", 1)[1]
+        filename = f"{uuid.uuid4().hex}.{ext}"
+
+        path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+        file.save(path)
+
+        img = Image(filename=filename, user_id=current_user.id)
+        db.session.add(img)
+        db.session.commit()
+
+    return redirect("/")
+
+
+@app.route("/like/<int:image_id>")
+@login_required
+def like(image_id):
+    img = Image.query.get(image_id)
+    img.likes += 1
+    db.session.commit()
+    return redirect("/")
+
+
+# ---------------- RUN (HOST READY) ----------------
 
 if __name__ == "__main__":
     os.makedirs("uploads", exist_ok=True)
@@ -83,4 +103,5 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
 
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
